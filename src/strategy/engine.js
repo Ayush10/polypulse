@@ -1,8 +1,14 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-const STRATEGY_PATH = path.resolve(process.cwd(), 'src/storage/strategies.json');
-const TV_SIGNALS_PATH = path.resolve(process.cwd(), 'src/storage/tradingview-signals.json');
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const PROJECT_ROOT = path.resolve(__dirname, '../../');
+
+const STRATEGY_PATH = path.join(PROJECT_ROOT, 'src/storage/strategies.json');
+const TV_SIGNALS_PATH = path.join(PROJECT_ROOT, 'src/storage/tradingview-signals.json');
 
 const defaultStrategy = {
   id: 'default_momo_sentiment_v1',

@@ -1,15 +1,59 @@
 {
-  "active": "default_momo_sentiment_v1",
+  "active": "balanced",
   "strategies": [
     {
-      "id": "default_momo_sentiment_v1",
-      "name": "Momentum + News Sentiment v1",
+      "id": "balanced",
+      "name": "Balanced (Default)",
       "enabled": true,
       "params": {
         "momentumWeight": 0.75,
         "sentimentWeight": 0.25,
         "longThreshold": 0.08,
         "shortThreshold": -0.08
+      }
+    },
+    {
+      "id": "momentum_only",
+      "name": "Momentum Only",
+      "enabled": true,
+      "params": {
+        "momentumWeight": 1.0,
+        "sentimentWeight": 0.0,
+        "longThreshold": 0.06,
+        "shortThreshold": -0.06
+      }
+    },
+    {
+      "id": "sentiment_heavy",
+      "name": "Sentiment Heavy",
+      "enabled": true,
+      "params": {
+        "momentumWeight": 0.3,
+        "sentimentWeight": 0.7,
+        "longThreshold": 0.08,
+        "shortThreshold": -0.08
+      }
+    },
+    {
+      "id": "conservative",
+      "name": "Conservative",
+      "enabled": true,
+      "params": {
+        "momentumWeight": 0.75,
+        "sentimentWeight": 0.25,
+        "longThreshold": 0.15,
+        "shortThreshold": -0.15
+      }
+    },
+    {
+      "id": "aggressive_scalper",
+      "name": "Aggressive Scalper",
+      "enabled": true,
+      "params": {
+        "momentumWeight": 0.8,
+        "sentimentWeight": 0.2,
+        "longThreshold": 0.03,
+        "shortThreshold": -0.03
       }
     }
   ]

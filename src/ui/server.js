@@ -6,8 +6,15 @@ import { runCycle, runThreeBankrollSimulations } from '../core.js';
 import { addStrategy, getStrategies, setActiveStrategy, pushTradingViewSignal } from '../strategy/engine.js';
 import { computeDashboard } from './analytics.js';
 
-const HTML_PATH = path.resolve(process.cwd(), 'src/ui/index.html');
-const REPORTS_DIR = path.resolve(process.cwd(), 'reports');
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+// server.js is in src/ui/ so root is ../../
+const PROJECT_ROOT = path.resolve(__dirname, '../../');
+
+const HTML_PATH = path.join(PROJECT_ROOT, 'src/ui/index.html');
+const REPORTS_DIR = path.join(PROJECT_ROOT, 'reports');
 
 function json(res, status, body) {
   res.writeHead(status, { 'content-type': 'application/json', 'access-control-allow-origin': '*' });

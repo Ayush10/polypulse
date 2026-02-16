@@ -39,9 +39,16 @@ function pickTopTradesWithFallback(signals, count = 3) {
     .map((s) => ({ ...s, action: (s.components.momentum || 0) >= 0 ? 'LONG' : 'SHORT', confidence: s.confidence || 'LOW' }));
 }
 
+import { fileURLToPath } from 'node:url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+// core.js is in src/ so root is ../
+// signals.csv is in src/storage/
+const SIGNALS_PATH = path.resolve(__dirname, 'storage/signals.csv');
+
 function ensureSignalsCsv() {
   ensureStorageFiles();
-  const p = path.resolve(process.cwd(), 'src/storage/signals.csv');
+  const p = SIGNALS_PATH;
   if (!existsSync(p)) writeFileSync(p, 'timestamp,market_id,title,action,score,confidence,momentum,sentiment,tvBias,price,change1h,change4h\n');
   return p;
 }
@@ -55,7 +62,7 @@ function logSignals(p, signals) {
 
 export async function runCycle({ profile = 'default', bankroll = config.paperBankroll, targetProfit = 5, maxCycles = 1, intervalMs = 30000, sendDigest = true, onProgress } = {}) {
   if (sendDigest) assertConfig();
-  const emit = typeof onProgress === 'function' ? onProgress : () => {};
+  const emit = typeof onProgress === 'function' ? onProgress : () => { };
 
   const signalsPath = ensureSignalsCsv();
   const state = loadState(bankroll, profile);
@@ -158,7 +165,7 @@ export async function runCycle({ profile = 'default', bankroll = config.paperBan
 }
 
 export async function runThreeBankrollSimulations({ onProgress } = {}) {
-  const emit = typeof onProgress === 'function' ? onProgress : () => {};
+  const emit = typeof onProgress === 'function' ? onProgress : () => { };
   const profiles = [
     { profile: 'sim_100', bankroll: 100 },
     { profile: 'sim_1000', bankroll: 1000 },

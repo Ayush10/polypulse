@@ -1,8 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+// src/config.js -> root is one up (src) then one up (root)? 
+// No, config is in src/, so root is ../
+const PROJECT_ROOT = path.resolve(__dirname, '../');
+
 function loadEnvFile() {
-  const envPath = path.resolve(process.cwd(), '.env');
+  const envPath = path.resolve(PROJECT_ROOT, '.env');
   if (!fs.existsSync(envPath)) return;
   const lines = fs.readFileSync(envPath, 'utf8').split('\n');
   for (const raw of lines) {

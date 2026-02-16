@@ -1,7 +1,13 @@
 import { appendFileSync, existsSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-const TRADES_PATH = path.resolve(process.cwd(), 'src/storage/trades.csv');
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const PROJECT_ROOT = path.resolve(__dirname, '../../');
+
+const TRADES_PATH = path.join(PROJECT_ROOT, 'src/storage/trades.csv');
 
 function ensureTradesCsv() {
   if (!existsSync(TRADES_PATH)) {

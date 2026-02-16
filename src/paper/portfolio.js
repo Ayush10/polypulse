@@ -1,7 +1,13 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-const STORAGE_DIR = path.resolve(process.cwd(), 'src/storage');
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const PROJECT_ROOT = path.resolve(__dirname, '../../');
+
+const STORAGE_DIR = path.join(PROJECT_ROOT, 'src/storage');
 
 export function ensureStorageFiles() {
   if (!existsSync(STORAGE_DIR)) mkdirSync(STORAGE_DIR, { recursive: true });

@@ -1,0 +1,12 @@
+node_modules/
+.env
+.DS_Store
+.claude/
+reports/
+src/storage/trades.csv
+src/storage/signals.csv
+src/storage/state.*.json
+src/storage/state.json
+src/storage/tradingview-signals.json
+copy_assets.js
+scripts/

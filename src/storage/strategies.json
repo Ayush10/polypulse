@@ -1,0 +1,16 @@
+{
+  "active": "default_momo_sentiment_v1",
+  "strategies": [
+    {
+      "id": "default_momo_sentiment_v1",
+      "name": "Momentum + News Sentiment v1",
+      "enabled": true,
+      "params": {
+        "momentumWeight": 0.75,
+        "sentimentWeight": 0.25,
+        "longThreshold": 0.08,
+        "shortThreshold": -0.08
+      }
+    }
+  ]
+}

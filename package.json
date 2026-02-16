@@ -1,0 +1,12 @@
+{
+  "name": "polypulse",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "run:once": "node src/index.js --once",
+    "simulate:3": "node src/index.js --simulate-3",
+    "ui": "node src/ui/server.js"
+  }
+}

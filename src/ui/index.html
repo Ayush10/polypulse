@@ -560,6 +560,132 @@
       word-break: break-all;
     }
 
+    /* ---- Trade Summary ---- */
+    .summary-hidden { display: none; }
+    .summary-grade {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .grade-circle {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: 800;
+      font-family: var(--mono);
+      flex-shrink: 0;
+    }
+    .grade-circle.excellent { background: #0d2818; color: var(--green); border: 2px solid var(--green); }
+    .grade-circle.good { background: #122a1e; color: #4ade80; border: 2px solid #4ade80; }
+    .grade-circle.fair { background: #1c1a0d; color: var(--yellow); border: 2px solid var(--yellow); }
+    .grade-circle.poor { background: #2d1215; color: var(--red); border: 2px solid var(--red); }
+    .grade-info h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .grade-info p {
+      font-size: 13px;
+      color: var(--text-sec);
+      margin: 0;
+    }
+    .summary-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .summary-stat {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+    }
+    .summary-stat .s-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .summary-stat .s-value {
+      font-family: var(--mono);
+      font-size: 18px;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    .summary-sections {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 700px) { .summary-sections { grid-template-columns: 1fr; } }
+    .summary-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+    }
+    .summary-box h4 {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: 10px;
+    }
+    .summary-box h4.text-green { color: var(--green); }
+    .summary-box h4.text-yellow { color: var(--yellow); }
+    .summary-box ul {
+      list-style: none;
+      padding: 0;
+    }
+    .summary-box li {
+      font-size: 13px;
+      color: var(--text-sec);
+      padding: 4px 0;
+      padding-left: 18px;
+      position: relative;
+      line-height: 1.5;
+    }
+    .summary-box li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 10px;
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+    }
+    .summary-box.good-box li::before { background: var(--green); }
+    .summary-box.improve-box li::before { background: var(--yellow); }
+    .trade-breakdown {
+      margin-top: 14px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .trade-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-family: var(--mono);
+      padding: 4px 10px;
+      border-radius: 4px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+    }
+    .trade-chip .chip-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
     /* ---- Empty State ---- */
     .empty {
       text-align: center;
@@ -686,6 +812,12 @@
     </div>
   </div>
 
+  <!-- Trade Summary -->
+  <div class="card summary-hidden" id="summaryCard">
+    <div class="card-head"><h2>Trade Summary & Analysis</h2></div>
+    <div class="card-body" id="summaryPanel"></div>
+  </div>
+
   <!-- Leaderboard + Equity -->
   <div class="grid-2">
     <div class="card">
@@ -780,6 +912,12 @@ let latestSentiment = null;
 let latestSignals = [];
 let latestState = null;
 
+/* Session accumulators (reset each run) */
+let sessionOpened = [];
+let sessionClosed = [];
+let sessionAllSignals = [];
+let sessionSentiment = null;
+
 /* ===== Helpers ===== */
 function $(id) { return document.getElementById(id); }
 function ts() { return new Date().toLocaleTimeString('en-US', { hour12: false }); }
@@ -818,6 +956,12 @@ async function streamRun(endpoint) {
 
   const btns = [btnRunOnce, btnSim3, btnDemo];
   btns.forEach(b => { b.disabled = true; b.classList.add('loading'); });
+
+  sessionOpened = [];
+  sessionClosed = [];
+  sessionAllSignals = [];
+  sessionSentiment = null;
+  $('summaryCard').classList.add('summary-hidden');
 
   addFeedLine('Connecting to trading engine...', 'info');
 
@@ -869,19 +1013,23 @@ function handleEvent(ev) {
       break;
     case 'sentiment':
       latestSentiment = ev.data;
+      sessionSentiment = ev.data;
       renderSentiment(ev.data);
       break;
     case 'signals':
       latestSignals = ev.data;
+      sessionAllSignals = sessionAllSignals.concat(ev.data);
       renderSignals(ev.data);
       break;
     case 'trades':
       if (ev.data.opened) {
+        sessionOpened = sessionOpened.concat(ev.data.opened);
         for (const p of ev.data.opened) {
           addFeedLine(`OPENED ${p.side} ${p.marketId} - $${p.stake.toFixed(2)} @ ${fmtPrice(p.entryPrice, '')}`, 'info');
         }
       }
       if (ev.data.closed) {
+        sessionClosed = sessionClosed.concat(ev.data.closed);
         for (const c of ev.data.closed) {
           addFeedLine(`CLOSED ${c.marketId} PnL ${c.pnl >= 0 ? '+' : ''}$${c.pnl.toFixed(2)} (${c.reason})`, c.pnl >= 0 ? 'success' : 'error');
         }
@@ -896,6 +1044,7 @@ function handleEvent(ev) {
       break;
     case 'done':
       addFeedLine('Session complete!', 'success');
+      renderTradeSummary();
       break;
     case 'error':
       addFeedLine('ERROR: ' + ev.message, 'error');
@@ -1054,6 +1203,150 @@ function renderPositions(state) {
       `).join('')}
     </div>
   `;
+}
+
+/* ===== Trade Summary ===== */
+function renderTradeSummary() {
+  const card = $('summaryCard');
+  const el = $('summaryPanel');
+
+  const totalOpened = sessionOpened.length;
+  const totalClosed = sessionClosed.length;
+  const wins = sessionClosed.filter(c => c.pnl >= 0);
+  const losses = sessionClosed.filter(c => c.pnl < 0);
+  const totalPnl = sessionClosed.reduce((a, c) => a + c.pnl, 0);
+  const avgPnl = totalClosed ? totalPnl / totalClosed : 0;
+  const winRate = totalClosed ? (wins.length / totalClosed * 100) : 0;
+  const bestTrade = sessionClosed.length ? sessionClosed.reduce((a, c) => c.pnl > a.pnl ? c : a) : null;
+  const worstTrade = sessionClosed.length ? sessionClosed.reduce((a, c) => c.pnl < a.pnl ? c : a) : null;
+  const uniqueSignals = sessionAllSignals.length;
+  const actionable = sessionAllSignals.filter(s => s.action !== 'HOLD').length;
+  const holdCount = uniqueSignals - actionable;
+  const highConf = sessionAllSignals.filter(s => s.confidence === 'HIGH').length;
+  const lowConf = sessionAllSignals.filter(s => s.confidence === 'LOW').length;
+  const timeouts = sessionClosed.filter(c => c.reason && c.reason.includes('timeout')).length;
+  const targets = sessionClosed.filter(c => c.reason && c.reason.includes('target')).length;
+  const sentScore = sessionSentiment ? sessionSentiment.score : 0;
+  const sentFlat = Math.abs(sentScore) < 0.05;
+
+  // Grade
+  let grade, gradeLabel, gradeCls, gradeDesc;
+  if (totalClosed === 0 && totalOpened === 0) {
+    grade = '--'; gradeLabel = 'No Trades'; gradeCls = 'fair';
+    gradeDesc = 'No positions were opened or closed this session.';
+  } else if (winRate >= 60 && totalPnl > 0) {
+    grade = 'A'; gradeLabel = 'Excellent'; gradeCls = 'excellent';
+    gradeDesc = 'Strong session with high win rate and positive returns.';
+  } else if (winRate >= 50 && totalPnl > 0) {
+    grade = 'B'; gradeLabel = 'Good'; gradeCls = 'good';
+    gradeDesc = 'Solid session with winning edge and positive PnL.';
+  } else if (winRate >= 40 || totalPnl >= 0) {
+    grade = 'C'; gradeLabel = 'Fair'; gradeCls = 'fair';
+    gradeDesc = 'Mixed results. Some areas need improvement.';
+  } else {
+    grade = 'D'; gradeLabel = 'Poor'; gradeCls = 'poor';
+    gradeDesc = 'Losing session. Review strategy parameters and market conditions.';
+  }
+
+  // What went well
+  const good = [];
+  if (winRate > 50) good.push(`Win rate of ${winRate.toFixed(0)}% means more trades are profitable than not`);
+  if (bestTrade && bestTrade.pnl > 0) good.push(`Best trade: ${bestTrade.marketId} ${bestTrade.side} brought in +$${bestTrade.pnl.toFixed(2)}`);
+  if (targets > 0) good.push(`${targets} trade(s) hit profit target - the scoring engine identified real moves`);
+  if (highConf > 0 && winRate >= 50) good.push(`High confidence signals delivered - scoring engine calibration is working`);
+  if (totalOpened > 0 && totalClosed > 0) good.push(`Full cycle executed: positions opened and closed within session`);
+  if (sentScore > 0.1 && totalPnl > 0) good.push(`Bullish sentiment aligned with positive returns`);
+  if (good.length === 0) good.push('Session completed without errors - data pipeline is functional');
+
+  // Improvements
+  const improve = [];
+  if (winRate < 50 && totalClosed > 0) improve.push('Win rate is below 50% - tighten entry thresholds to filter out weaker signals');
+  if (totalPnl < 0) improve.push('Negative PnL - consider switching to the Conservative strategy for higher conviction entries only');
+  if (timeouts > 0 && timeouts >= totalClosed * 0.5) improve.push(`${timeouts} trade(s) closed by timeout, not profit target - consider increasing hold duration or lowering profit target`);
+  if (lowConf > highConf && lowConf > 2) improve.push('Most signals are LOW confidence - the market may be range-bound, try widening the asset universe');
+  if (holdCount > actionable) improve.push('More HOLD than actionable signals - lower thresholds or switch to Aggressive Scalper strategy');
+  if (sentFlat) improve.push('Sentiment was near-neutral - sentiment weight has low impact, try Momentum Only strategy');
+  if (worstTrade && worstTrade.pnl < -3) improve.push(`Worst trade ${worstTrade.marketId} lost $${Math.abs(worstTrade.pnl).toFixed(2)} - consider tighter stop-losses or reducing position size`);
+  if (totalOpened > 0 && totalClosed === 0) improve.push('Positions opened but none closed - increase cycle count or reduce max hold time to see full trade lifecycle');
+  if (improve.length === 0) improve.push('No major issues detected. Consider running more cycles to gather better statistical significance.');
+
+  // Trade breakdown chips
+  const chips = sessionClosed.map(c => {
+    const dotColor = c.pnl >= 0 ? 'var(--green)' : 'var(--red)';
+    return `<span class="trade-chip">
+      <span class="chip-dot" style="background:${dotColor}"></span>
+      ${c.marketId} ${c.side} ${c.pnl >= 0 ? '+' : ''}$${c.pnl.toFixed(2)}
+      <span style="color:var(--text-muted)">${c.reason || ''}</span>
+    </span>`;
+  });
+
+  card.classList.remove('summary-hidden');
+
+  el.innerHTML = `
+    <div class="summary-grade">
+      <div class="grade-circle ${gradeCls}">${grade}</div>
+      <div class="grade-info">
+        <h3>${gradeLabel} Performance</h3>
+        <p>${gradeDesc}</p>
+      </div>
+    </div>
+
+    <div class="summary-stats">
+      <div class="summary-stat">
+        <div class="s-label">Total PnL</div>
+        <div class="s-value ${totalPnl >= 0 ? 'text-green' : 'text-red'}">${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)}</div>
+      </div>
+      <div class="summary-stat">
+        <div class="s-label">Win Rate</div>
+        <div class="s-value">${totalClosed ? winRate.toFixed(0) + '%' : '--'}</div>
+      </div>
+      <div class="summary-stat">
+        <div class="s-label">Trades</div>
+        <div class="s-value">${totalClosed}<span style="font-size:12px;color:var(--text-muted)"> closed</span></div>
+      </div>
+      <div class="summary-stat">
+        <div class="s-label">Avg PnL/Trade</div>
+        <div class="s-value ${avgPnl >= 0 ? 'text-green' : 'text-red'}">${totalClosed ? (avgPnl >= 0 ? '+' : '') + '$' + avgPnl.toFixed(2) : '--'}</div>
+      </div>
+      <div class="summary-stat">
+        <div class="s-label">Best Trade</div>
+        <div class="s-value text-green">${bestTrade ? '+$' + bestTrade.pnl.toFixed(2) : '--'}</div>
+      </div>
+      <div class="summary-stat">
+        <div class="s-label">Worst Trade</div>
+        <div class="s-value text-red">${worstTrade && worstTrade.pnl < 0 ? '-$' + Math.abs(worstTrade.pnl).toFixed(2) : '--'}</div>
+      </div>
+      <div class="summary-stat">
+        <div class="s-label">Profit Targets</div>
+        <div class="s-value">${targets}</div>
+      </div>
+      <div class="summary-stat">
+        <div class="s-label">Timeouts</div>
+        <div class="s-value">${timeouts}</div>
+      </div>
+    </div>
+
+    <div class="summary-sections">
+      <div class="summary-box good-box">
+        <h4 class="text-green">What Went Well</h4>
+        <ul>${good.map(g => `<li>${g}</li>`).join('')}</ul>
+      </div>
+      <div class="summary-box improve-box">
+        <h4 class="text-yellow">Areas to Improve</h4>
+        <ul>${improve.map(i => `<li>${i}</li>`).join('')}</ul>
+      </div>
+    </div>
+
+    ${chips.length ? `
+      <div class="trade-breakdown">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;font-weight:600;width:100%;margin-bottom:4px">Closed Trades</div>
+        ${chips.join('')}
+      </div>
+    ` : ''}
+  `;
+
+  // Scroll into view
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 /* ===== Dashboard ===== */
